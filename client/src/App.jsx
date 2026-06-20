@@ -26,6 +26,9 @@ export default function App() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [history, setHistory] = useState(loadHistory);
   const [toasts, setToasts] = useState([]);
+  const [showSettings, setShowSettings] = useState(false);
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
+  const [tempKey, setTempKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
   const lastPayload = useRef(null);
   let toastId = useRef(0);
 
@@ -33,6 +36,24 @@ export default function App() {
     const id = ++toastId.current;
     setToasts(prev => [...prev, { id, message, type }]);
   }, []);
+
+  const handleSaveKey = () => {
+    const trimmed = tempKey.trim();
+    if (trimmed) {
+      localStorage.setItem('gemini_api_key', trimmed);
+      setApiKey(trimmed);
+      showToast('Custom API Key saved successfully', 'success');
+    } else {
+      handleClearKey();
+    }
+  };
+
+  const handleClearKey = () => {
+    localStorage.removeItem('gemini_api_key');
+    setApiKey('');
+    setTempKey('');
+    showToast('Custom API Key cleared', 'info');
+  };
 
   const dismissToast = useCallback((id) => {
     setToasts(prev => prev.filter(t => t.id !== id));
@@ -123,7 +144,58 @@ export default function App() {
       <Header
         onToggleHistory={() => setHistoryOpen(true)}
         historyCount={history.length}
+        onToggleSettings={() => setShowSettings(prev => !prev)}
+        hasCustomKey={!!apiKey}
       />
+
+      {showSettings && (
+        <div className="settings-card">
+          <div className="settings-card__header">
+            <h3 className="settings-card__title">API Configuration</h3>
+            <p className="settings-card__desc">
+              Enter your own Gemini API Key. It is stored in your browser's local storage and only used for your generation requests.
+            </p>
+          </div>
+          <div className="settings-card__body">
+            <div className="form-group">
+              <label className="form-label" htmlFor="api-key-input">Gemini API Key</label>
+              <div className="settings-card__input-group">
+                <input
+                  id="api-key-input"
+                  type="password"
+                  className="form-input"
+                  placeholder="Enter Gemini API Key (e.g. AIzaSy...)"
+                  value={tempKey}
+                  onChange={(e) => setTempKey(e.target.value)}
+                />
+                <div className="settings-card__actions">
+                  <button type="button" className="btn btn--primary btn--sm" onClick={handleSaveKey}>
+                    Save Key
+                  </button>
+                  {apiKey && (
+                    <button type="button" className="btn btn--sm" onClick={handleClearKey}>
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="settings-card__footer">
+              {apiKey ? (
+                <div className="settings-status settings-status--success">
+                  <span className="settings-status__dot"></span>
+                  Custom API Key is active
+                </div>
+              ) : (
+                <div className="settings-status settings-status--info">
+                  <span className="settings-status__dot"></span>
+                  Using default key/demo mode
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <InputForm onGenerate={handleGenerate} isLoading={isLoading} />
 

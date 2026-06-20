@@ -7,6 +7,7 @@ export function createGenerateRouter(aiService) {
   router.post('/generate', async (req, res) => {
     try {
       const { question, correctAnswer, concept, difficulty, strictMathsMode } = req.body;
+      const apiKey = req.headers['x-gemini-api-key'];
 
       if (!question || !question.trim()) {
         return res.status(400).json({ error: 'Question is required' });
@@ -21,6 +22,7 @@ export function createGenerateRouter(aiService) {
         concept: concept?.trim() || undefined,
         difficulty: difficulty || 'Medium',
         strictMathsMode: !!strictMathsMode,
+        apiKey,
       });
 
       // Validate response shape
@@ -39,6 +41,7 @@ export function createGenerateRouter(aiService) {
   router.post('/regenerate-single', async (req, res) => {
     try {
       const { question, correctAnswer, concept, difficulty, strictMathsMode, existingDistractors, regenerateIndex } = req.body;
+      const apiKey = req.headers['x-gemini-api-key'];
 
       if (!question || !correctAnswer) {
         return res.status(400).json({ error: 'Question and correct answer are required' });
@@ -52,6 +55,7 @@ export function createGenerateRouter(aiService) {
         strictMathsMode: !!strictMathsMode,
         existingDistractors: existingDistractors || [],
         regenerateIndex: regenerateIndex ?? 0,
+        apiKey,
       });
 
       if (!result?.distractor) {

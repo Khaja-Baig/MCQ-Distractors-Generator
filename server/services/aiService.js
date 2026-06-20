@@ -34,66 +34,87 @@ function mockRegenerateSingle({ correctAnswer }) {
 }
 
 // --- Gemini AI service using new @google/genai SDK ---
-function createGeminiService() {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey || apiKey === 'your_gemini_api_key_here') return null;
+const clientCache = new Map();
 
-  // New @google/genai client creation matching user's snippet
+function getGeminiClient(apiKey) {
+  if (!apiKey) return null;
+  if (clientCache.has(apiKey)) {
+    return clientCache.get(apiKey);
+  }
   const client = new GoogleGenAI({ apiKey });
+  clientCache.set(apiKey, client);
+  return client;
+}
 
-  return {
-    async generate(systemPrompt, userPrompt) {
-      const fullPrompt = `${systemPrompt}\n\nUser Input:\n${userPrompt}`;
-      
-      const response = await client.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: fullPrompt,
-        config: {
-          responseMimeType: 'application/json'
-        }
-      });
-      
-      // The SDK returns text directly or via response.text
-      const text = response.text || response.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!text) throw new Error("Empty response from Gemini");
-      
-      // Handle potential markdown backticks in response
-      const cleanJson = text.replace(/^```json\n?/, '').replace(/\n?```$/, '');
-      return JSON.parse(cleanJson);
-    },
-  };
+async function callGemini(client, systemPrompt, userPrompt) {
+  const fullPrompt = `${systemPrompt}\n\nUser Input:\n${userPrompt}`;
+  
+  const response = await client.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: fullPrompt,
+    config: {
+      responseMimeType: 'application/json'
+    }
+  });
+  
+  // The SDK returns text directly or via response.text
+  const text = response.text || response.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error("Empty response from Gemini");
+  
+  // Handle potential markdown backticks in response
+  const cleanJson = text.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+  return JSON.parse(cleanJson);
 }
 
 export function createAIService() {
-  const aiService = createGeminiService();
+  const defaultApiKey = process.env.GEMINI_API_KEY;
+  const hasDefaultKey = defaultApiKey && defaultApiKey !== 'your_gemini_api_key_here';
 
-  if (aiService) {
-    console.log('✓ AI Service: Google Gemini (gemini-2.5-flash)');
-    return {
-      async generateDistractors(promptData) {
-        const { buildGeneratePrompt } = await import('../prompts/distractorPrompt.js');
-        const { system, user } = buildGeneratePrompt(promptData);
-        return aiService.generate(system, user);
-      },
-      async regenerateSingle(promptData) {
-        const { buildRegenerateSinglePrompt } = await import('../prompts/distractorPrompt.js');
-        const { system, user } = buildRegenerateSinglePrompt(promptData);
-        return aiService.generate(system, user);
-      },
-    };
+  if (hasDefaultKey) {
+    console.log('✓ AI Service: Google Gemini (gemini-2.5-flash) [Default Key Configured]');
+  } else {
+    console.log('⚠ AI Service: Initialized in Demo Mode (no default GEMINI_API_KEY found)');
   }
 
-  // Fallback to mock/demo mode
-  console.log('⚠ AI Service: Demo Mode (no API key found)');
-  console.log('  Set GEMINI_API_KEY in server/.env for real AI generation');
   return {
     async generateDistractors(promptData) {
-      await new Promise(r => setTimeout(r, MOCK_DELAY));
-      return mockGenerate(promptData);
+      const apiKey = promptData.apiKey || defaultApiKey;
+      const hasKey = apiKey && apiKey !== 'your_gemini_api_key_here';
+
+      if (!hasKey) {
+        await new Promise(r => setTimeout(r, MOCK_DELAY));
+        return mockGenerate(promptData);
+      }
+
+      try {
+        const client = getGeminiClient(apiKey);
+        const { buildGeneratePrompt } = await import('../prompts/distractorPrompt.js');
+        const { system, user } = buildGeneratePrompt(promptData);
+        return await callGemini(client, system, user);
+      } catch (err) {
+        console.error('Gemini generate error:', err);
+        throw err;
+      }
     },
+
     async regenerateSingle(promptData) {
-      await new Promise(r => setTimeout(r, MOCK_DELAY));
-      return mockRegenerateSingle(promptData);
+      const apiKey = promptData.apiKey || defaultApiKey;
+      const hasKey = apiKey && apiKey !== 'your_gemini_api_key_here';
+
+      if (!hasKey) {
+        await new Promise(r => setTimeout(r, MOCK_DELAY));
+        return mockRegenerateSingle(promptData);
+      }
+
+      try {
+        const client = getGeminiClient(apiKey);
+        const { buildRegenerateSinglePrompt } = await import('../prompts/distractorPrompt.js');
+        const { system, user } = buildRegenerateSinglePrompt(promptData);
+        return await callGemini(client, system, user);
+      } catch (err) {
+        console.error('Gemini regenerateSingle error:', err);
+        throw err;
+      }
     },
   };
 }

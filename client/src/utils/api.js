@@ -1,9 +1,15 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export async function generateDistractors({ question, correctAnswer, concept, difficulty, strictMathsMode }) {
+  const apiKey = localStorage.getItem('gemini_api_key') || '';
+  const headers = { 'Content-Type': 'application/json' };
+  if (apiKey) {
+    headers['x-gemini-api-key'] = apiKey;
+  }
+
   const res = await fetch(`${API_BASE}/generate`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({ question, correctAnswer, concept, difficulty, strictMathsMode }),
   });
   if (!res.ok) {
@@ -14,9 +20,15 @@ export async function generateDistractors({ question, correctAnswer, concept, di
 }
 
 export async function regenerateSingle({ question, correctAnswer, concept, difficulty, strictMathsMode, existingDistractors, regenerateIndex }) {
+  const apiKey = localStorage.getItem('gemini_api_key') || '';
+  const headers = { 'Content-Type': 'application/json' };
+  if (apiKey) {
+    headers['x-gemini-api-key'] = apiKey;
+  }
+
   const res = await fetch(`${API_BASE}/regenerate-single`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({ question, correctAnswer, concept, difficulty, strictMathsMode, existingDistractors, regenerateIndex }),
   });
   if (!res.ok) {
