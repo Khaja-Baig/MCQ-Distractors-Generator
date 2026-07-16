@@ -55,6 +55,21 @@ export default function App() {
     showToast('Custom API Key cleared', 'info');
   };
 
+  const ensureKeySaved = () => {
+    const trimmed = tempKey.trim();
+    if (trimmed !== apiKey) {
+      if (trimmed) {
+        localStorage.setItem('gemini_api_key', trimmed);
+        setApiKey(trimmed);
+        showToast('Custom API Key saved and applied', 'success');
+      } else if (apiKey) {
+        localStorage.removeItem('gemini_api_key');
+        setApiKey('');
+        showToast('Custom API Key cleared', 'info');
+      }
+    }
+  };
+
   const dismissToast = useCallback((id) => {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
@@ -71,6 +86,7 @@ export default function App() {
   }, []);
 
   async function handleGenerate(payload) {
+    ensureKeySaved();
     lastPayload.current = payload;
     setIsLoading(true);
     setResult(null);
@@ -98,6 +114,7 @@ export default function App() {
 
   async function handleRegenerateSingle(index) {
     if (!lastPayload.current || !result) return;
+    ensureKeySaved();
     setRegeneratingIndex(index);
     try {
       const data = await regenerateSingle({
