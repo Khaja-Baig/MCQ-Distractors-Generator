@@ -50,7 +50,7 @@ async function callGemini(client, systemPrompt, userPrompt) {
   const fullPrompt = `${systemPrompt}\n\nUser Input:\n${userPrompt}`;
   
   const response = await client.models.generateContent({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-1.5-flash',
     contents: fullPrompt,
     config: {
       responseMimeType: 'application/json'
