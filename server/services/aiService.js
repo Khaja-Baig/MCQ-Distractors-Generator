@@ -50,7 +50,7 @@ async function callGemini(client, systemPrompt, userPrompt) {
   const fullPrompt = `${systemPrompt}\n\nUser Input:\n${userPrompt}`;
   
   const response = await client.models.generateContent({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3.5-flash',
     contents: fullPrompt,
     config: {
       responseMimeType: 'application/json'
@@ -71,7 +71,7 @@ export function createAIService() {
   const hasDefaultKey = defaultApiKey && defaultApiKey !== 'your_gemini_api_key_here';
 
   if (hasDefaultKey) {
-    console.log('✓ AI Service: Google Gemini (gemini-2.5-flash) [Default Key Configured]');
+    console.log('✓ AI Service: Google Gemini (gemini-3.5-flash) [Default Key Configured]');
   } else {
     console.log('⚠ AI Service: Initialized in Demo Mode (no default GEMINI_API_KEY found)');
   }
